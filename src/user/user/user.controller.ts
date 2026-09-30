@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Header,
@@ -6,11 +7,13 @@ import {
   HttpRedirectResponse,
   Inject,
   Param,
+  ParseIntPipe,
   Post,
   Query,
   Redirect,
   Req,
   Res,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { UserService } from './user.service';
@@ -19,6 +22,10 @@ import { MailService } from '../mail/mail.service';
 import { UserRepository } from '../user-repository/user-repository';
 import { MemeberService } from '../memeber/memeber.service';
 import { User } from '@prisma/client';
+import { LoginUserRequest, loginUSerValidation } from '../../model/login.model';
+import { ValidationPipe } from '../../validation/validation.pipe';
+import { TimeInterceptor } from '../../time/time.interceptor';
+import { Auth } from '../../auth/auth.decorator';
 
 @Controller('/api/users')
 export class UserController {
@@ -30,6 +37,21 @@ export class UserController {
     private userRepository: UserRepository,
     private memberService: MemeberService,
   ) {}
+
+  @Post('/login')
+  @UseInterceptors(TimeInterceptor)
+  login(
+    @Body(new ValidationPipe(loginUSerValidation)) request: LoginUserRequest,
+  ) {
+    return { data: `hello ${request.username}` };
+  }
+
+  @Get('/current')
+  current(@Auth() user: User): Record<string, any> {
+    return {
+      data: `hello ${user.first_name} ${user.last_name}`,
+    };
+  }
 
   @Get('/connection')
   async getConnection(): Promise<string> {
@@ -84,7 +106,7 @@ export class UserController {
   }
 
   @Get('/:id')
-  getById(@Param('id') id: string): string {
+  getById(@Param('id', ParseIntPipe) id: string): string {
     return `GET ${id}`;
   }
 
